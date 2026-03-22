@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NeuralPath - AI Learning Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #06050a;
+      --bg-light: #121021;
+      --sidebar: rgba(18, 16, 33, 0.4);
+      --card: rgba(255, 255, 255, 0.03);
+      --text: #ffffff;
+      --text-muted: #a0a0b0;
+      --accent: #7652ff;
+      --accent-hover: #5136db;
+      --border: rgba(255, 255, 255, 0.08);
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'IBM Plex Sans', sans-serif; background: radial-gradient(ellipse at top left, var(--bg-light), var(--bg-dark)); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+    h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+    
+    #sidebar { width: 280px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; flex-shrink: 0; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 10; }
+    #main { flex: 1; display: flex; flex-direction: column; position: relative; }
+    #topbar { height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; background: transparent; flex-shrink: 0; justify-content: space-between; backdrop-filter: blur(10px); }
+    
+    .stage-badge { padding: 5px 12px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); font-size: 0.9em; font-weight: 500; color: var(--text-muted); }
+    .stage-badge.active { color: var(--accent); border-color: var(--accent); }
+    
+    .logo { font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 30px; }
+    .level-select { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 6px; width: 100%; margin-bottom: 20px; font-family: inherit; }
+    
+    .tracker { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+    .tracker-step { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 0.9em; }
+    .tracker-step.active { color: var(--text); font-weight: 600; }
+    .tracker-step.done { color: var(--accent); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+    .tracker-step.active .dot { background: var(--text); }
+    .tracker-step.done .dot { background: var(--accent); }
+    
+    .history h4 { margin-bottom: 15px; color: var(--text-muted); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item { font-size: 0.9em; cursor: pointer; color: var(--text); opacity: 0.8; }
+    .history-item:hover { opacity: 1; color: var(--accent); }
+    
+    #chat-area { flex: 1; overflow-y: auto; padding: 30px 20px; display: flex; flex-direction: column; gap: 24px; scroll-behavior: smooth; }
+    .message { max-width: 800px; margin: 0 auto; width: 100%; line-height: 1.6; }
+    .user-message { text-align: right; }
+    .user-bubble { display: inline-block; background: var(--card); border: 1px solid var(--border); padding: 12px 18px; border-radius: 12px 12px 0 12px; text-align: left;}
+    .system-img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 8px; margin-bottom: 16px; display: none; background: var(--card); }
+    
+    #input-panel { padding: 20px 30px; background: transparent; border-top: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 15px; }
+    .input-wrapper { max-width: 800px; width: 100%; position: relative; display: flex; align-items: center; gap: 12px; }
+    textarea { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 16px; color: var(--text); padding: 16px 20px; font-family: inherit; font-size: 1.05em; resize: none; min-height: 55px; max-height: 120px; overflow-y: auto; outline: none; transition: 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); backdrop-filter: blur(10px); }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(118, 82, 255, 0.2); }
+    .action-btns { display: flex; gap: 10px; }
+    .send-btn, .mic-btn { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; border: none; height: 55px; padding: 0 24px; border-radius: 50vw; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; box-shadow: 0 4px 15px rgba(118, 82, 255, 0.2); }
+    .send-btn:disabled, .mic-btn:disabled { background: var(--card); color: var(--text-muted); cursor: not-allowed; opacity: 0.6; box-shadow: none; border: 1px solid var(--border); }
+    .send-btn:hover:not(:disabled), .mic-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(118, 82, 255, 0.4); }
+    .mic-btn.listening { animation: premiumPulse 1.5s infinite; background: linear-gradient(135deg, var(--red), #dc2626); box-shadow: none; }
+    @keyframes premiumPulse { 0% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6); } 70% { box-shadow: 0 0 0 15px rgba(248, 113, 113, 0); } }
+    
+    .voice-slider-wrapper { display: flex; align-items: center; gap: 12px; font-size: 0.9em; color: var(--text-muted); font-weight: 500; align-self: center; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; border: 1px solid var(--border); }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 4px; background-color: var(--text-muted); transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent); border-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+    
+    .message.system-message .feedback-card, .message.system-message .your-turn-card { border-radius: 16px; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(12px); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .user-bubble { display: inline-block; background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01)); border: 1px solid var(--border); padding: 14px 20px; border-radius: 16px 16px 0 16px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.1); backdrop-filter: blur(10px); }
+    
+    .welcome { text-align: center; margin-top: 50px; margin-bottom: 50px; }
+    .welcome h2 { font-size: 2.5em; margin-bottom: 10px; }
+    .welcome p { color: var(--text-muted); margin-bottom: 30px; }
+    .starter-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 600px; margin: 0 auto; }
+    
+    .practice-btn { background: var(--card); border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.95em; font-weight: 500; transition: 0.2s; font-family: inherit; margin-top: 15px; }
+    .practice-btn:hover { background: var(--accent); color: #fff; }
+    .chip { background: var(--card); border: 1px solid var(--border); padding: 10px 16px; border-radius: 20px; cursor: pointer; transition: 0.2s; }
+    .chip:hover { border-color: var(--accent); }
+
+    .term-badge { background: rgba(107, 76, 255, 0.15); color: #fff; border: 1px solid rgba(107, 76, 255, 0.5); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.9em; display: inline-flex; align-items: center; gap: 4px; border-bottom: 1px dashed var(--accent); }
+    .term-badge::after { content: "?"; font-size: 0.8em; opacity: 0.7; }
+    
+    #term-popup { position: fixed; background: var(--sidebar); border: 1px solid var(--border); border-radius: 8px; padding: 16px; width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; }
+    #term-popup h4 { color: var(--accent); margin-bottom: 8px; }
+    #term-popup .analogy { color: var(--text-muted); font-size: 0.9em; margin-top: 8px; font-style: italic; }
+    #term-popup .example { background: var(--card); padding: 8px; border-radius: 4px; font-size: 0.9em; margin-top: 8px; }
+
+    .your-turn-card { background: linear-gradient(135deg, var(--card), #1b1633); border: 1px solid var(--accent); padding: 20px; border-radius: 12px; margin-top: 20px; text-align: center; }
+    .your-turn-card h3 { color: #fff; margin-bottom: 10px; }
+    
+    .feedback-card { padding: 20px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--border); }
+    .feedback-correct { border-color: var(--green); background: rgba(46,125,50,0.1); }
+    .feedback-partial { border-color: var(--yellow); background: rgba(245,127,23,0.1); }
+    .feedback-incorrect { border-color: var(--red); background: rgba(198,40,40,0.1); }
+    
+    .fb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .fb-score { font-size: 1.5em; font-weight: bold; font-family: 'Syne'; }
+    .progress-bar-container { background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; overflow: hidden; margin: 15px 0; }
+    .progress-bar { height: 100%; transition: width 1s ease-out; }
+    .feedback-correct .progress-bar { background: var(--green); }
+    .feedback-partial .progress-bar { background: var(--yellow); }
+    .feedback-incorrect .progress-bar { background: var(--red); }
+    .fb-section { margin-top: 15px; }
+    .fb-section h4 { opacity: 0.8; margin-bottom: 4px; font-size: 0.9em; text-transform: uppercase; }
+    
+    .related-chips { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .related-chip { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+    .related-chip:hover { border-color: var(--text-muted); }
+    .related-content { display: none; padding: 15px; background: var(--bg); border: 1px solid var(--border); border-top: none; border-radius: 0 0 8px 8px; }
+    .related-wrapper.open .related-chip { border-radius: 8px 8px 0 0; border-color: var(--border); background: var(--sidebar); }
+    .related-wrapper.open .related-content { display: block; }
+    
+    .premium-loader { color: var(--accent); font-weight: 600; display: flex; gap: 4px; align-items: center; padding: 15px 20px; background: var(--card); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid var(--border); width: fit-content; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9em; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .premium-loader span { animation: premiumBlink 1.4s infinite both; font-size: 1.2em; line-height: 0; }
+    .premium-loader span:nth-child(2) { animation-delay: 0.2s; }
+    .premium-loader span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes premiumBlink { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 20% { opacity: 1; transform: scale(1.2); } }
+    .message { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .progress-container { margin-top: 30px; }
+    .progress-container h4 { color: var(--text-muted); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+    .progress-item { background: var(--card); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-size: 0.9em; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .progress-item strong { color: var(--accent); }
+    
+    .ai-analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .ai-metric-box { background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 15px; border-radius: 8px; }
+    .ai-metric-box h4 { margin-bottom: 10px; color: var(--text-muted); font-size: 0.85em; text-transform: uppercase; }
+    .ai-score-large { font-size: 2.2em; font-weight: bold; font-family: 'Syne'; margin-bottom: 5px; }
+    .ai-score-high { color: var(--green); }
+    .ai-score-med { color: var(--yellow); }
+    .ai-score-low { color: var(--red); }
+    .ai-hint { margin-top: 15px; padding: 10px 15px; border-left: 3px solid var(--accent); background: rgba(107, 76, 255, 0.1); border-radius: 4px; font-style: italic; font-size: 0.9em; }
+    
+    .fb-correction { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .fb-correction h4 { margin-bottom: 6px; font-size: 0.9em; text-transform: uppercase; opacity: 0.8; }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 0.8em; padding: 4px 8px; border-radius: 4px; background: var(--border); }
+    .tag.green { background: rgba(46,125,50,0.2); color: #81c784; border: 1px solid rgba(46,125,50,0.4); }
+    .tag.red { background: rgba(198,40,40,0.2); color: #e57373; border: 1px solid rgba(198,40,40,0.4); }
+    
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      #sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; max-height: 40vh; overflow-y: auto; }
+      #topbar { height: auto; padding: 10px 20px; }
+      #input-panel { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="logo">NeuralPath</div>
+    
+    <select class="level-select" id="level-select">
+      <option value="class6">Class 6 (Simple)</option>
+      <option value="class8">Class 8 (School)</option>
+      <option value="class10">Class 10 (Detailed)</option>
+      <option value="college">College (Academic)</option>
+      <option value="curious" selected>Curious (Friendly default)</option>
+    </select>
+    
+    <div class="tracker">
+      <div class="tracker-step" id="tracker-step-1">
+        <div class="dot"></div> Stage 1: AI Explains
+      </div>
+      <div class="tracker-step" id="tracker-step-2">
+        <div class="dot"></div> Stage 2: You Explain Back
+      </div>
+      <div class="tracker-step" id="tracker-step-3">
+        <div class="dot"></div> Stage 3: AI Feedback
+      </div>
+    </div>
+    
+    <div class="history">
+      <h4>History</h4>
+      <div class="history-list" id="history-list"></div>
+    </div>
+    
+    <div class="progress-container">
+      <h4>Your Progress</h4>
+      <div id="progress-list"></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <h3>NeuralPath Session</h3>
+    </div>
+    
+    <div id="chat-area">
+      <div class="welcome" id="welcome-screen">
+        <h2>What do you want to learn today?</h2>
+        <p>Pick a topic or type anything below.</p>
+        <div class="starter-chips">
+          <div class="chip" onclick="startTopic('Quantum Entanglement')">Quantum Entanglement</div>
+          <div class="chip" onclick="startTopic('Photosynthesis')">Photosynthesis</div>
+          <div class="chip" onclick="startTopic('Black Holes')">Black Holes</div>
+          <div class="chip" onclick="startTopic('Roman Empire')">Roman Empire</div>
+          <div class="chip" onclick="startTopic('Machine Learning')">Machine Learning</div>
+          <div class="chip" onclick="startTopic('Plate Tectonics')">Plate Tectonics</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="input-panel">
+      <div class="voice-slider-wrapper">
+        <span>AI Voice Response: </span>
+        <label class="switch">
+          <input type="checkbox" id="voice-toggle-checkbox">
+          <span class="slider"></span>
+        </label>
+        <span id="voice-status-text">OFF</span>
+      </div>
+      <div class="input-wrapper">
+        <textarea id="main-input" placeholder="Type a topic to start learning..." rows="1"></textarea>
+        <div class="action-btns">
+          <button class="mic-btn" id="mic-start-btn" title="Start Recording">🎤 Start</button>
+          <button class="mic-btn" id="mic-stop-btn" title="Stop Recording" disabled>⏹ Stop</button>
+          <button class="send-btn" id="send-btn" disabled>Send</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Term Popup Overlay -->
+    <div id="term-popup">
+      <h4 id="popup-title">Term</h4>
+      <div id="popup-desc">Loading...</div>
+      <div class="analogy" id="popup-analogy"></div>
+      <div class="example" id="popup-example"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+    let currentTopicState = null; // { topic, stage (1, 2, 3) }
+    
+    let chatArea, mainInput, sendBtn, micStartBtn, micStopBtn, levelSelect, welcomeScreen;
+    
+    // Voice API Setup
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+    let baseText = '';
+    let finalTranscript = '';
+    let silenceTimer = null;
+    let currentExplanationText = '';
+    let stage2StartTime = 0;
+    let voiceModeEnabled = false;
+
+    function speakText(text) {
+      if (!voiceModeEnabled) return;
+      window.speechSynthesis.cancel();
+      if (text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      chatArea = document.getElementById('chat-area');
+      mainInput = document.getElementById('main-input');
+      sendBtn = document.getElementById('send-btn');
+      micStartBtn = document.getElementById('mic-start-btn');
+      micStopBtn = document.getElementById('mic-stop-btn');
+      levelSelect = document.getElementById('level-select');
+      welcomeScreen = document.getElementById('welcome-screen');
+      
+      const voiceToggleCheckbox = document.getElementById('voice-toggle-checkbox');
+      const voiceStatusText = document.getElementById('voice-status-text');
+      if (voiceToggleCheckbox) {
+        voiceToggleCheckbox.addEventListener('change', (e) => {
+          voiceModeEnabled = e.target.checked;
+          if (voiceModeEnabled) {
+            voiceStatusText.innerText = 'ON (Auto-read Enabled)';
+            voiceStatusText.style.color = 'var(--text)';
+            speakText("Voice mode enabled.");
+          } else {
+            voiceStatusText.innerText = 'OFF';
+            voiceStatusText.style.color = 'var(--text-muted)';
+            window.speechSynthesis.cancel();
+          }
+        });
+      }
+      
+      renderProgress();
+      
+      // Auto-resize textarea and disable button
+      mainInput.addEventListener('input', function() {
+        this.style.height = '50px';
+        this.style.height = (this.scrollHeight) + 'px';
+        if(this.value.trim() === '') {
+          this.style.height = '50px';
+          sendBtn.disabled = true;
+        } else {
+          sendBtn.disabled = false;
+        }
+      });
+      
+      mainInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && !e.shiftKey) { 
+          e.preventDefault(); 
+          if (!sendBtn.disabled) handleSend(); 
+        }
+      });
+      
+      sendBtn.addEventListener('click', () => {
+        console.log("Send / Get Feedback Clicked");
+        handleSend();
+      });
+
+      // Voice Input Logic
+      if (micStartBtn && recognition) {
+        micStartBtn.addEventListener('click', startVoiceInput);
+        micStopBtn.addEventListener('click', () => stopVoiceInput(true));
+        
+        recognition.onstart = function() {
+          isListening = true;
+          micStartBtn.innerHTML = '🎙️ Listening...';
+          micStartBtn.classList.add('listening');
+          micStartBtn.disabled = true;
+          micStopBtn.disabled = false;
+          
+          baseText = mainInput.value.trim();
+          finalTranscript = '';
+          resetSilenceTimer();
+        };
+        
+        recognition.onresult = function(event) {
+          let interimTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+          
+          const combined = baseText + (baseText && (finalTranscript || interimTranscript) ? ' ' : '') + finalTranscript + interimTranscript;
+          mainInput.value = combined;
+          mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+          
+          resetSilenceTimer();
+        };
+        
+        recognition.onerror = function(event) {
+          console.error('Speech recognition error', event.error);
+          stopVoiceInput(false);
+        };
+        
+        recognition.onend = function() {
+          // If browser stops recognition but user didn't request it, restart it.
+          if (isListening) {
+            try {
+              recognition.start();
+            } catch(e) { console.error('Failed to restart mic', e); stopVoiceInput(false); }
+          }
+        };
+      } else if (micStartBtn) {
+        micStartBtn.style.display = 'none';
+        micStopBtn.style.display = 'none';
+      }
+    });
+
+    function resetSilenceTimer() {
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        if (isListening) {
+          console.log("Silence detected (5s). Auto-stopping...");
+          stopVoiceInput(true);
+        }
+      }, 5000);
+    }
+
+    function startVoiceInput() {
+      if (isListening) return;
+      try {
+        recognition.start();
+      } catch(e) { console.error("Mic start error:", e); }
+    }
+
+    function stopVoiceInput(autoSubmit = false) {
+      if (!isListening) return;
+      isListening = false;
+      recognition.stop();
+      if (silenceTimer) clearTimeout(silenceTimer);
+      
+      micStartBtn.innerHTML = '🎤 Start';
+      micStartBtn.classList.remove('listening');
+      micStartBtn.disabled = false;
+      micStopBtn.disabled = true;
+      
+      if (autoSubmit && mainInput.value.trim() !== '') {
+        console.log("Auto-submitting after voice input...");
+        // Wait briefly for final textual updates before sending
+        setTimeout(() => {
+          handleSend();
+        }, 300);
+      }
+    }
+    
+    function startTopic(topic) {
+      if (mainInput) {
+        mainInput.value = topic;
+        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      handleSend();
+    }
+    
+    function setStage(stage) {
+      document.getElementById('tracker-step-1').className = 'tracker-step' + (stage >= 1 ? ' active' + (stage > 1 ? ' done':'') : '');
+      document.getElementById('tracker-step-2').className = 'tracker-step' + (stage >= 2 ? ' active' + (stage > 2 ? ' done':'') : '');
+      document.getElementById('tracker-step-3').className = 'tracker-step' + (stage >= 3 ? ' active' : '');
+    }
+    
+    async function handleSend() {
+      const text = mainInput.value.trim();
+      if(!text) return;
+      mainInput.value = '';
+      mainInput.style.height = '50px';
+      
+      if(welcomeScreen) welcomeScreen.style.display = 'none';
+      appendUserMessage(text);
+      
+      if(!currentTopicState || currentTopicState.stage === 3) {
+        // Start a new topic (Stage 1)
+        currentTopicState = { topic: text, stage: 1 };
+        setStage(1);
+        mainInput.placeholder = "Loading explanation...";
+        mainInput.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.innerText = "Send";
+        
+        await fetchExplanation(text);
+      } else if(currentTopicState.mode === 'practice') {
+        currentTopicState.stage = 3;
+        setStage(3);
+        mainInput.placeholder = "Evaluating your communication...";
+        mainInput.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.innerText = "Send";
+        
+        processPracticeFeedback(text);
+      } else if(currentTopicState.stage === 2) {
+        // User is answering (Stage 3)
+        currentTopicState.stage = 3;
+        setStage(3);
+        mainInput.placeholder = "Evaluating your answer...";
+        mainInput.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.innerText = "Send";
+        
+        await fetchFeedback(text, currentTopicState.topic);
+      }
+    }
+    
+    function appendUserMessage(text) {
+      const div = document.createElement('div');
+      div.className = 'message user-message';
+      div.innerHTML = `<div class="user-bubble">${text}</div>`;
+      chatArea.appendChild(div);
+      scrollToBottom();
+    }
+    
+    function appendLoading() {
+      const id = 'loader-' + Date.now();
+      const div = document.createElement('div');
+      div.className = 'message system-message';
+      div.id = id;
+      div.innerHTML = `<div class="premium-loader">🧠 AI is analyzing<span>.</span><span>.</span><span>.</span></div>`;
+      chatArea.appendChild(div);
+      scrollToBottom();
+      return id;
+    }
+    
+    function removeLoading(id) {
+      const el = document.getElementById(id);
+      if(el) el.remove();
+    }
+    
+    function scrollToBottom() {
+      chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+    }
+    
+    async function fetchImageForTopic(query, imgElementId) {
+      try {
+        const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(query)}&prop=pageimages&format=json&pithumbsize=700&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+        if (pageId !== "-1" && pages[pageId].thumbnail) {
+          const img = document.getElementById(imgElementId);
+          if (img) {
+            img.src = pages[pageId].thumbnail.source;
+            img.style.display = 'block';
+          }
+        }
+      } catch (e) { console.error("Wiki img fail", e); }
+    }
+    
+    async function fetchExplanation(topic) {
+      const loaderId = appendLoading();
+      try {
+        const res = await fetch(API_URL + '/explain', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ topic, level: levelSelect.value })
+        });
+        const data = await res.json();
+        removeLoading(loaderId);
+        
+        // Add to history
+        if (data.topic_clean) {
+          const hist = document.getElementById('history-list');
+          hist.innerHTML += `<div class="history-item" onclick="startTopic('${data.topic_clean}')">• ${data.topic_clean}</div>`;
+        }
+        
+        renderExplanation(data);
+        currentExplanationText = data.explanation;
+        speakText(data.explanation);
+        
+        // Setup Stage 2 naturally after rendering Stage 1
+        setTimeout(() => {
+          stage2StartTime = Date.now();
+          currentTopicState.stage = 2;
+          currentTopicState.mode = 'explain'; // standard
+          setStage(2);
+          
+          const ytCard = document.createElement('div');
+          ytCard.className = 'message system-message';
+          ytCard.innerHTML = `
+            <div class="your-turn-card">
+              <h3>Your Turn!</h3>
+              <p>Explain <strong>${data.topic_clean || topic}</strong> in your own words. How much did you understand?</p>
+              <button class="practice-btn" id="start-practice-btn">👉 Practice Speaking</button>
+            </div>
+          `;
+          chatArea.appendChild(ytCard);
+          scrollToBottom();
+          
+          ytCard.querySelector('#start-practice-btn').addEventListener('click', () => {
+            currentTopicState.mode = 'practice';
+            appendUserMessage("I want to practice speaking to teach a beginner.");
+            
+            const pMsg = document.createElement('div');
+            pMsg.className = 'message system-message';
+            pMsg.innerHTML = `<div class="feedback-card feedback-correct"><p><strong>Communication Mode Activated:</strong> Please explain the concept out loud like you're teaching a beginner.</p></div>`;
+            chatArea.appendChild(pMsg);
+            speakText("Communication Mode Activated. Please explain the concept clearly, like you're teaching it to a beginner.");
+            
+            mainInput.disabled = false;
+            mainInput.placeholder = `Speak or type an explanation for a beginner...`;
+            sendBtn.innerText = "Get Feedback";
+            startVoiceInput();
+          });
+          
+          mainInput.disabled = false;
+          mainInput.placeholder = `Explain ${data.topic_clean || topic} in your own words...`;
+          sendBtn.innerText = "Get Feedback";
+          mainInput.focus();
+        }, 1500);
+
+      } catch (error) {
+        removeLoading(loaderId);
+        appendUserMessage("Error: Could not fetch explanation. Ensure backend is running.");
+        mainInput.disabled = false;
+        mainInput.placeholder = "Type a topic...";
+      }
+    }
+    
+    function renderExplanation(data) {
+      const div = document.createElement('div');
+      div.className = 'message system-message';
+      
+      const imgId = "img-" + Date.now();
+      let html = `<img id="${imgId}" class="system-img" alt="Topic image">`;
+      
+      // Parse [[term]] into badges
+      let formattedText = data.explanation.replace(/\[\[(.*?)\]\]/g, (match, term) => {
+        return `<span class="term-badge" data-term="${term.replace(/"/g, '&quot;')}">${term}</span>`;
+      });
+      html += `<div>${formattedText.replace(/\n/g, '<br>')}</div>`;
+      
+      // Related chips
+      if(data.related_concepts && data.related_concepts.length > 0) {
+        html += `<div class="related-chips">`;
+        data.related_concepts.forEach((concept, i) => {
+          html += `<div class="related-wrapper" id="rel-${Date.now()}-${i}">
+            <div class="related-chip" onclick="toggleRelated(this, '${concept}', '${data.topic_clean}')">Related: ${concept}</div>
+            <div class="related-content">Loading...</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+      
+      div.innerHTML = html;
+      chatArea.appendChild(div);
+      
+      if (data.image_query) { fetchImageForTopic(data.image_query, imgId); }
+      scrollToBottom();
+    }
+    
+    async function toggleRelated(element, concept, parentTopic) {
+      const wrapper = element.parentElement;
+      const content = wrapper.querySelector('.related-content');
+      const isOpen = wrapper.classList.contains('open');
+      
+      // Close all others
+      document.querySelectorAll('.related-wrapper').forEach(w => w.classList.remove('open'));
+      
+      if (!isOpen) {
+        wrapper.classList.add('open');
+        if (content.innerText === 'Loading...') {
+          try {
+            const res = await fetch(API_URL + '/relatedconcept', {
+              method: 'POST', headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ concept, parentTopic, level: levelSelect.value })
+            });
+            const data = await res.json();
+            content.innerHTML = `<strong>${data.explanation}</strong><br><br><i>Connection:</i> ${data.connection}<br><br><i>Example:</i> ${data.example}`;
+          } catch(e) { content.innerText = 'Error loading concept.'; }
+        }
+        setTimeout(scrollToBottom, 100);
+      }
+    }
+    
+    async function fetchFeedback(userExplanation, topic) {
+      const loaderId = appendLoading();
+      try {
+        const res = await fetch(API_URL + '/feedback', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ topic, userExplanation, level: levelSelect.value })
+        });
+        const data = await res.json();
+        removeLoading(loaderId);
+        
+        // Calculate local metrics
+        const timeTakenMs = Date.now() - stage2StartTime;
+        const localMetrics = {
+          understanding: calculateUnderstandingScore(currentExplanationText, userExplanation),
+          authenticity: analyzeAuthenticity(userExplanation, timeTakenMs),
+          confidence: analyzeConfidence(userExplanation)
+        };
+        
+        // Save score to progress
+        saveScore(localMetrics.understanding.score);
+        
+        renderFeedback(data, localMetrics);
+        
+        // Reset to Stage 1
+        mainInput.disabled = false;
+        mainInput.placeholder = "Type another topic to learn...";
+        sendBtn.innerText = "Send";
+        currentTopicState = null;
+        
+      } catch (error) {
+        removeLoading(loaderId);
+        appendUserMessage("Error: Could not fetch feedback.");
+        mainInput.disabled = false;
+        mainInput.placeholder = "Type a topic...";
+        sendBtn.innerText = "Get Feedback";
+      }
+    }
+    
+    function renderFeedback(data, localMetrics) {
+      // AI Voice Response
+      const speechStr = data.feedback || "Here is your feedback.";
+      speakText(speechStr);
+
+      const div = document.createElement('div');
+      div.className = 'message system-message';
+      
+      const { understanding, authenticity, confidence } = localMetrics;
+      const scoreColor = understanding.score >= 80 ? 'high' : understanding.score >= 50 ? 'med' : 'low';
+      const borderClass = understanding.score >= 80 ? 'feedback-correct' : understanding.score >= 50 ? 'feedback-partial' : 'feedback-incorrect';
+      
+      let html = `<div class="feedback-card ${borderClass}">`;
+      html += `<p style="font-size: 1.1em; line-height: 1.5; margin-bottom: 20px;">${data.feedback}</p>`;
+      
+      // Upper layout: Intelligent Metrics
+      html += `
+        <div class="ai-analysis-grid">
+          <div class="ai-metric-box">
+            <h4>Understanding Score</h4>
+            <div class="ai-score-large ai-score-${scoreColor}">${understanding.score}%</div>
+            <div>
+              <div style="font-size: 0.85em; margin-top: 8px; color: var(--text-muted)">Keywords Matched:</div>
+              <div class="tag-list" style="margin-top: 4px;">
+                ${understanding.strengths.length > 0 ? understanding.strengths.map(s => `<span class="tag green">${s}</span>`).join('') : '<span class="tag">None extracted</span>'}
+              </div>
+              <div style="font-size: 0.85em; margin-top: 8px; color: var(--text-muted)">Missing Concepts:</div>
+              <div class="tag-list" style="margin-top: 4px;">
+                ${understanding.missing.length > 0 ? understanding.missing.map(m => `<span class="tag red">${m}</span>`).join('') : '<span class="tag">None</span>'}
+              </div>
+            </div>
+          </div>
+          <div class="ai-metric-box">
+            <h4>Confidence</h4>
+            <div class="ai-score-large ai-score-${confidence.level === 'High' ? 'high' : confidence.level === 'Moderate' ? 'med' : 'low'}">${confidence.level}</div>
+            <p style="font-size: 0.9em; margin-top: 10px; color: var(--text-muted); line-height: 1.4;">${confidence.suggestion}</p>
+          </div>
+        </div>
+      `;
+      
+      // Subtle Anti-cheat Hint
+      if (authenticity.length > 0) {
+        html += `<div class="ai-hint">💡 <strong>Coach Tip:</strong> ${authenticity[0]}</div>`;
+      }
+      
+      // Traditional Content Feedback
+      html += `
+        <div class="fb-correction">
+          <h4>What You Got Right</h4>
+          <p style="color: var(--green); opacity: 0.9; margin-bottom: 15px; font-size: 0.95em;">✓ ${data.what_you_got_right}</p>
+          
+          <h4>What Needs Work</h4>
+          <p style="color: var(--yellow); opacity: 0.9; margin-bottom: 15px; font-size: 0.95em;">⚠ ${data.what_to_improve}</p>
+      `;
+      
+      if (data.misconception) {
+        html += `<h4>Correction</h4><p style="color: var(--text); opacity: 0.9; font-size: 0.95em;">${data.misconception}</p>`;
+      }
+      
+      html += `</div></div>`;
+      
+      div.innerHTML = html;
+      chatArea.appendChild(div);
+      scrollToBottom();
+    }
+    
+    // Feature intelligence methods
+    function renderProgress() {
+      const list = document.getElementById('progress-list');
+      if (!list) return;
+      let scores = JSON.parse(localStorage.getItem('neuralpath_scores') || '[]');
+      if (scores.length === 0) {
+        list.innerHTML = '<div class="progress-item" style="opacity: 0.5;">No scores yet</div>';
+        return;
+      }
+      list.innerHTML = scores.map((s, i) => `<div class="progress-item">Record ${i+1}: <strong>${s}%</strong></div>`).join('');
+    }
+
+    function saveScore(score) {
+      let scores = JSON.parse(localStorage.getItem('neuralpath_scores') || '[]');
+      scores.push(score);
+      if (scores.length > 3) scores.shift();
+      localStorage.setItem('neuralpath_scores', JSON.stringify(scores));
+      renderProgress();
+    }
+
+    function calculateUnderstandingScore(aiText, userText) {
+      if (!aiText || !userText) return { score: 100, missing: [], strengths: [] };
+      const stopWords = ["should", "could", "would", "which", "their", "there", "about", "these", "those", "because", "between", "through"];
+      const aiWords = aiText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+      const candidates = aiWords.filter(w => w.length > 5 && !stopWords.includes(w));
+      let keywords = [...new Set(candidates)];
+      if (keywords.length > 15) keywords = keywords.slice(0, 15);
+      
+      const userWords = userText.toLowerCase().replace(/[^a-z\s]/g, '');
+      let matched = 0;
+      let missing = [];
+      let strengths = [];
+      
+      keywords.forEach(kw => {
+        if (userWords.includes(kw)) { matched++; strengths.push(kw); }
+        else { missing.push(kw); }
+      });
+      
+      const score = keywords.length > 0 ? Math.round((matched / keywords.length) * 100) : 100;
+      return { score, missing: missing.slice(0, 4), strengths: strengths.slice(0, 4) };
+    }
+
+    function analyzeAuthenticity(text, timeTakenMs) {
+      let hints = [];
+      const words = text.toLowerCase().split(/\s+/);
+      
+      if (timeTakenMs < 6000 && words.length > 20) {
+        hints.push("You answered very quickly! Keep it authentic and explain in your own words.");
+      }
+      
+      const fillers = ["um", "uh", "ah", "like", "basically", "literally"];
+      const fillerCount = words.filter(w => fillers.includes(w)).length;
+      if (fillerCount === 0 && words.length > 40) {
+        hints.push("This seems very structured. For best learning, try translating concepts casually like talking to a friend.");
+      }
+      
+      return hints;
+    }
+
+    function analyzeConfidence(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const fillers = ["um", "uh", "ah", "like", "hmm"];
+      const fillerCount = words.filter(w => fillers.includes(w)).length;
+      const fillerRatio = fillerCount / (words.length || 1);
+      
+      if (words.length < 5) return { level: "Low", suggestion: "Too brief to tell. Try expanding your thoughts!" };
+      if (fillerRatio > 0.05) return { level: "Low", suggestion: "Noticeable hesitation. Trust your knowledge and try to flow!" };
+      if (fillerRatio > 0.02) return { level: "Moderate", suggestion: "Good delivery, but a little hesitant. You're doing great." };
+      return { level: "High", suggestion: "Excellent! You sounded very confident and clear." };
+    }
+    
+    // Communication Practice Processing
+    function processPracticeFeedback(userText) {
+      const loaderId = appendLoading();
+      setTimeout(() => {
+        removeLoading(loaderId);
+        const metrics = evaluateCommunicationMode(userText);
+        renderCommunicationFeedback(userText, metrics);
+        
+        mainInput.disabled = false;
+        mainInput.placeholder = "Type another topic to learn...";
+        sendBtn.innerText = "Send";
+        currentTopicState = null;
+      }, 1500);
+    }
+
+    function evaluateCommunicationMode(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const longWords = words.filter(w => w.length >= 9);
+      const structural = ['first', 'then', 'because', 'so', 'example', 'imagine', 'like', 'meaning'];
+      const structCount = words.filter(w => structural.includes(w)).length;
+      
+      let clear, confusing, simplify, improve;
+      
+      if (words.length > 15) {
+        clear = "Your baseline speaking rhythm and length were solid.";
+      } else {
+        clear = "You kept the explanation brief and direct.";
+      }
+      
+      if (longWords.length > 2) {
+        confusing = "You used several complex terms which a beginner might struggle with.";
+        simplify = "Try using an analogy to ground those complex ideas in reality.";
+      } else {
+        confusing = "Some sentence flows could be structured slightly better.";
+        simplify = "Keep your sentences short, punchy, and conversational.";
+      }
+      
+      if (structCount < 2) {
+        improve = "Add structural words like 'first', 'example', or 'imagine' to guide your listener.";
+      } else {
+        improve = "Excellent use of structural transitions to map out the flow perfectly.";
+      }
+      return { clear, confusing, simplify, improve };
+    }
+
+    function renderCommunicationFeedback(text, metrics) {
+      const div = document.createElement('div');
+      div.className = 'message system-message';
+      
+      let html = `<div class="feedback-card feedback-partial">`;
+      html += `<div class="fb-header"><h3>Practice Evaluation</h3></div>`;
+      html += `<p style="font-size: 1.05em; margin-bottom: 20px;">You attempted to explain this as a teacher. Here is how your communication skills measured up:</p>`;
+      
+      html += `
+        <div class="fb-correction">
+          <h4>🟢 What Was Clear</h4>
+          <p style="color: var(--green); margin-bottom: 15px; font-size: 0.95em;">✓ ${metrics.clear}</p>
+          
+          <h4>🔴 What Was Confusing</h4>
+          <p style="color: var(--red); margin-bottom: 15px; font-size: 0.95em;">✗ ${metrics.confusing}</p>
+          
+          <h4>⚠️ Simplification Needed</h4>
+          <p style="color: var(--yellow); margin-bottom: 15px; font-size: 0.95em;">⚠ ${metrics.simplify}</p>
+
+          <h4>💡 How to Improve Speaking</h4>
+          <p style="color: var(--accent); margin-top: 10px; font-size: 0.95em; font-weight: 500;">${metrics.improve}</p>
+        </div>
+      </div>`;
+      
+      div.innerHTML = html;
+      chatArea.appendChild(div);
+      scrollToBottom();
+      
+      const speechSummary = `Communication Evaluation complete. ${metrics.clear} ${metrics.improve}`;
+      speakText(speechSummary);
+    }
+
+    // Popup Logic for complex terms
+    const termPopup = document.getElementById('term-popup');
+    document.addEventListener('click', async (e) => {
+      // Open popup logic
+      if (e.target.classList.contains('term-badge')) {
+        const term = e.target.getAttribute('data-term');
+        const rect = e.target.getBoundingClientRect();
+        
+        termPopup.style.display = 'block';
+        termPopup.style.top = (rect.bottom + 10) + 'px';
+        
+        // Handle right edge overflow
+        if (rect.left + 300 > window.innerWidth) {
+          termPopup.style.left = (window.innerWidth - 320) + 'px';
+        } else {
+          termPopup.style.left = rect.left + 'px';
+        }
+        
+        document.getElementById('popup-title').innerText = term;
+        document.getElementById('popup-desc').innerText = 'Loading simple explanation...';
+        document.getElementById('popup-analogy').innerText = '';
+        document.getElementById('popup-example').innerText = '';
+        
+        try {
+          // Pass some context from surrounding element if desired
+          const context = e.target.parentElement.innerText; 
+          const res = await fetch(API_URL + '/quickexplain', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ term, context: context.substring(0, 200), level: levelSelect.value })
+          });
+          const data = await res.json();
+          document.getElementById('popup-desc').innerText = data.simple_explanation;
+          document.getElementById('popup-analogy').innerText = 'Analogy: ' + data.analogy;
+          document.getElementById('popup-example').innerText = 'Example: ' + data.example;
+        } catch(err) {
+          document.getElementById('popup-desc').innerText = "Failed to load.";
+        }
+      } else if (!termPopup.contains(e.target)) {
+        // Close popup if clicked outside
+        termPopup.style.display = 'none';
+      }
+    });
+
+    // Close popup on scrolling
+    chatArea.addEventListener('scroll', () => {
+      termPopup.style.display = 'none';
+    });
+
+  </script>
+</body>
+</html>
