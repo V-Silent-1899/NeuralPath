@@ -1,0 +1,63 @@
+{
+  "users": [
+    {
+      "id": "1774206201557",
+      "name": "Vishant",
+      "email": "You@gmail.com",
+      "password": "$2b$10$qZBZbtBDz1pWCYEHNYYmyu0xgMjs7tnDiNNKFsy0ZintBDWPxU1tW"
+    },
+    {
+      "id": "1774206400433",
+      "name": "vishant",
+      "email": "vishantsurakshapandey@gmail.com",
+      "password": "$2b$10$xh8HEx8JNh6nrm5cfzrzSOCeCtdc4Gb8ychS4ZzHDqSNcxtsfn6Oy"
+    }
+  ],
+  "activities": [
+    {
+      "id": "1774206230183",
+      "userId": "1774206201557",
+      "topic": "Quantum Entanglement",
+      "explanation": "ajskljcksncksncksn",
+      "feedback": "It seems there might have been a misunderstanding or a lack of clarity in your explanation. Quantum entanglement is a complex phenomenon where particles become interconnected in such a way that the state of one particle cannot be described independently of the others, even when separated by large distances.",
+      "score": 0,
+      "timestamp": "2026-03-22T19:03:50.183Z"
+    },
+    {
+      "id": "1774207270160",
+      "userId": "1774206400433",
+      "topic": "Machine Learning",
+      "explanation": "Imagine you want to teach a child to recognize different types of dogs and cats. You would show them many pictures of dogs and cats and tell them which is which. Over time, the child learns to recognize the patterns and differences between the two. Machine Learning works in a similar way, but instead of a child, it's a computer that learns from data. The computer is shown many examples, like pictures or words, and it tries to find patterns. Then, it can use those patterns to make predictions or decisions on its own.",
+      "feedback": "Overall, your explanation effectively conveyed the foundational idea of machine learning, demonstrating a solid understanding of the subject.",
+      "score": 100,
+      "timestamp": "2026-03-22T19:21:10.160Z"
+    },
+    {
+      "id": "1774248331331",
+      "userId": "1774206400433",
+      "topic": "imagine comedian performing stand up routine where jokes are like superposition they exist multiple state at once funny and not funny tell me about some Raina",
+      "explanation": "imagine comedian like Ronaldo race or Hasan minhaj performing a standard 15 and this routine jokes can be the",
+      "feedback": "Your explanation had a good start, but it didn't quite land the punchline of the concept. Keep working on understanding how jokes can exist in multiple states simultaneously, like in quantum superposition, to fully get the idea",
+      "score": 33,
+      "timestamp": "2026-03-23T06:45:31.331Z"
+    },
+    {
+      "id": "1774248872692",
+      "userId": "1774206400433",
+      "topic": "tell me what the relationship between Sonia Gandhi and Mahatma Gandhi",
+      "explanation": "Mahatma Gandhi Sonia Gandhi was not in a relationship but they were in sexual relationship they had five",
+      "feedback": "It seems there's been a significant misunderstanding. Mahatma Gandhi was a key figure in India's independence movement, while Sonia Gandhi is the former president of the Indian National Congress and the wife of Rajiv Gandhi, the grandson of Jawaharlal Nehru. They come from different backgrounds and there is no known personal or familial relationship between them.",
+      "score": 13,
+      "timestamp": "2026-03-23T06:54:32.692Z"
+    },
+    {
+      "id": "1774262002219",
+      "userId": "1774206400433",
+      "topic": "Roman empire with black holes",
+      "explanation": "Imagine the Roman Empire as a massive, powerful galaxy with many stars (cities) and planets (towns) revolving around it. Just like how a black hole has an incredibly strong pull, the Roman Empire had a strong pull that attracted many people and resources. However, just as a black hole can suck in and consume nearby stars and planets, the Roman Empire expanded and consumed many nearby lands and cultures. This 'gravitational pull' of the empire helped it grow, but eventually, it became so massive that it began to collapse under its own weight, much like how a star collapses into a black hole.",
+      "feedback": "Your explanation showcases a creative understanding of the topic, effectively leveraging the concept of black holes to describe the Roman Empire's expansion and eventual collapse.",
+      "score": 100,
+      "timestamp": "2026-03-23T10:33:22.219Z"
+    }
+  ]
+}

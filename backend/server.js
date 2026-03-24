@@ -3,12 +3,53 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import Groq from 'groq-sdk';
 import fetch from 'node-fetch'; // Polyfill if needed
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_FILE = path.join(__dirname, 'db.json');
+const JWT_SECRET = process.env.JWT_SECRET || 'neuralpath-super-secret-key';
+
+// Initialize DB safely
+async function initDB() {
+  try {
+    await fs.access(DB_FILE);
+  } catch {
+    await fs.writeFile(DB_FILE, JSON.stringify({ users: [], activities: [] }, null, 2));
+  }
+}
+initDB();
+
+async function readDB() {
+  const data = await fs.readFile(DB_FILE, 'utf-8');
+  return JSON.parse(data);
+}
+async function writeDB(data) {
+  await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
+}
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.sendStatus(401);
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.get('/', (req, res) => res.send("Server is running"));
 
 const PORT = process.env.PORT || 3000;
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -47,8 +88,8 @@ const getLevelInstructions = (level) => {
   return levels[level] || levels["curious"];
 };
 
-// 1. POST /api/explain
-app.post('/api/explain', async (req, res) => {
+// 1. POST /explain
+app.post('/explain', async (req, res) => {
   const { topic, level = "curious" } = req.body;
   if (!topic) return res.status(400).json({ error: "Topic is required" });
 
@@ -106,8 +147,8 @@ OUTPUT FORMAT (STRICT JSON ONLY WITHOUT MARKDOWN WRAPPING):
   }
 });
 
-// 2. POST /api/feedback
-app.post('/api/feedback', async (req, res) => {
+// 2. POST /feedback
+app.post('/feedback', async (req, res) => {
   const { topic, userExplanation, level = "curious" } = req.body;
   if (!topic || !userExplanation) return res.status(400).json({ error: "Topic and userExplanation are required" });
 
@@ -147,8 +188,8 @@ The JSON MUST have this structure:
   }
 });
 
-// 3. POST /api/quickexplain
-app.post('/api/quickexplain', async (req, res) => {
+// 3. POST /quickexplain
+app.post('/quickexplain', async (req, res) => {
   const { term, context, level = "curious" } = req.body;
   if (!term) return res.status(400).json({ error: "Term is required" });
 
@@ -184,8 +225,8 @@ The JSON MUST have this structure:
   }
 });
 
-// 4. POST /api/relatedconcept
-app.post('/api/relatedconcept', async (req, res) => {
+// 4. POST /relatedconcept
+app.post('/relatedconcept', async (req, res) => {
   const { concept, parentTopic, level = "curious" } = req.body;
   if (!concept || !parentTopic) return res.status(400).json({ error: "Concept and parentTopic are required" });
 
@@ -220,6 +261,113 @@ The JSON MUST have this structure:
     console.error("Error in /api/relatedconcept:", error);
     res.status(500).json({ error: "Failed to generate related concept" });
   }
+});
+
+// --- AUTHENTICATION ROUTES ---
+
+// POST /signup
+app.post('/signup', async (req, res) => {
+  console.log("--> Request hit /signup route");
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "All fields required" });
+    }
+    
+    const db = await readDB();
+    if (db.users.find(u => u.email === email)) {
+      return res.status(400).json({ success: false, message: "User already exists" });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = { id: Date.now().toString(), name, email, password: hashedPassword };
+    db.users.push(newUser);
+    await writeDB(db);
+    
+    const token = jwt.sign({ id: newUser.id, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ success: true, message: "Signup successful", token, user: { id: newUser.id, name: newUser.name, email: newUser.email } });
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({ success: false, message: "Signup failed" });
+  }
+});
+
+// POST /login
+app.post('/login', async (req, res) => {
+  console.log("--> Request hit /login route");
+  try {
+    const { email, password } = req.body;
+    const db = await readDB();
+    const user = db.users.find(u => u.email === email);
+    
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
+    
+    const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ success: true, message: "Login successful", token, user: { id: user.id, name: user.name, email: user.email } });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ success: false, message: "Login failed" });
+  }
+});
+
+// --- DASHBOARD & ACTIVITY ROUTES ---
+
+// POST /activity/save
+app.post('/activity/save', authenticateToken, async (req, res) => {
+  try {
+    const { topic, explanation, feedback, score } = req.body;
+    const db = await readDB();
+    
+    const newActivity = {
+      id: Date.now().toString(),
+      userId: req.user.id,
+      topic,
+      explanation,
+      feedback,
+      score: Number(score) || 0,
+      timestamp: new Date().toISOString()
+    };
+    
+    db.activities.push(newActivity);
+    await writeDB(db);
+    res.json({ success: true, activity: newActivity });
+  } catch (error) {
+    console.error("Save Activity Error:", error);
+    res.status(500).json({ error: "Failed to save activity" });
+  }
+});
+
+// GET /dashboard
+app.get('/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const db = await readDB();
+    const userActivities = db.activities.filter(a => a.userId === req.user.id);
+    
+    // Sort chronological descending
+    userActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    const totalSessions = userActivities.length;
+    
+    // unique topics
+    const uniqueTopics = new Set(userActivities.map(a => a.topic.toLowerCase())).size;
+    const averageScore = totalSessions > 0 
+      ? Math.round(userActivities.reduce((acc, a) => acc + a.score, 0) / totalSessions)
+      : 0;
+      
+    // Recent scores (last 5)
+    // Map just the scores from the latest to oldest
+    const recentScores = userActivities.slice(0, 5).map(a => a.score);
+    
+    res.json({
+      totalSessions,
+      topicsCompleted: uniqueTopics,
+      averageScore,
+      recentScores,
+      history: userActivities
+    });
+  } catch (error) { res.status(500).json({ error: "Failed to fetch dashboard data" }); }
 });
 
 app.listen(PORT, () => {

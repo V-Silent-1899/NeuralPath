@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuralPath | Authenticate</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #06050a;
+      --bg-light: #121021;
+      --card: rgba(255, 255, 255, 0.03);
+      --text: #ffffff;
+      --text-muted: #a0a0b0;
+      --accent: #7652ff;
+      --accent-hover: #5136db;
+      --border: rgba(255, 255, 255, 0.08);
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'IBM Plex Sans', sans-serif; background: radial-gradient(ellipse at top left, var(--bg-light), var(--bg-dark)); color: var(--text); display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+    h1, h2, h3 { font-family: 'Syne', sans-serif; }
+    
+    .auth-container { width: 100%; max-width: 420px; padding: 40px; border-radius: 20px; background: var(--card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border); box-shadow: 0 16px 40px rgba(0,0,0,0.4); animation: fadeIn 0.4s ease-out; position: relative; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .logo { font-family: 'Syne'; font-size: 2.2em; font-weight: 800; background: linear-gradient(135deg, #fff, var(--text-muted)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 5px; }
+    .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 0.95em; }
+    
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 6px; font-size: 0.9em; color: var(--text-muted); }
+    input { width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: inherit; font-size: 1em; outline: none; transition: 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(118, 82, 255, 0.2); }
+    
+    .btn-submit { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.05em; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px; font-family: inherit; }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(118, 82, 255, 0.4); }
+    
+    .auth-switch { text-align: center; margin-top: 20px; font-size: 0.9em; color: var(--text-muted); }
+    .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 600; transition: 0.2s; }
+    .auth-switch a:hover { color: #fff; }
+    
+    .error-msg { display: none; color: var(--error); text-align: center; font-size: 0.9em; margin-bottom: 15px; padding: 10px; background: rgba(248, 113, 113, 0.1); border-radius: 8px; border: 1px solid rgba(248, 113, 113, 0.2); }
+    
+    #signup-section { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="auth-container">
+    <div class="logo glitch-logo" data-text="NeuralPath" style="cursor: pointer;">NeuralPath</div>
+    <div class="subtitle">AI-Powered Learning System</div>
+    
+    <div id="error-box" class="error-msg"></div>
+
+    <!-- Login Form -->
+    <div id="login-section">
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-submit" id="login-btn">Log In</button>
+      </form>
+      <div class="auth-switch">
+        New here? <a onclick="toggleAuth('signup')">Create an account</a>
+      </div>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="signup-section">
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="John Doe" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-submit" id="signup-btn">Sign Up</button>
+      </form>
+      <div class="auth-switch">
+        Already have an account? <a onclick="toggleAuth('login')">Log back in</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    
+    const loginSection = document.getElementById('login-section');
+    const signupSection = document.getElementById('signup-section');
+    const errorBox = document.getElementById('error-box');
+
+    // Auto-redirect if already logged in
+    if (localStorage.getItem('neuralpath_token')) {
+      window.location.href = 'index.html';
+    }
+
+    function toggleAuth(mode) {
+      errorBox.style.display = 'none';
+      if (mode === 'signup') {
+        loginSection.style.display = 'none';
+        signupSection.style.display = 'block';
+      } else {
+        signupSection.style.display = 'none';
+        loginSection.style.display = 'block';
+      }
+    }
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = 'block';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      btn.innerText = 'Loging in...';
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const res = await fetch(API_URL + '/login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        console.log("Login Response: ", data);
+        if (data.success && data.token) {
+          localStorage.setItem('neuralpath_token', data.token);
+          localStorage.setItem('neuralpath_user', JSON.stringify(data.user));
+          window.location.href = 'index.html';
+        } else {
+          showError(data.message || 'Login failed');
+          btn.innerText = 'Log In';
+        }
+      } catch (err) { 
+        console.error('Fetch error:', err); 
+        showError('Server not responding. Please try again.'); 
+        btn.innerText = 'Log In'; 
+      }
+    });
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('signup-btn');
+      btn.innerText = 'Creating account...';
+      
+      const name = document.getElementById('signup-name').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      
+      try {
+        const res = await fetch(API_URL + '/signup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        console.log("Signup Response: ", data);
+        if (data.success && data.token) {
+          localStorage.setItem('neuralpath_token', data.token);
+          localStorage.setItem('neuralpath_user', JSON.stringify(data.user));
+          window.location.href = 'index.html';
+        } else {
+          showError(data.message || 'Signup failed');
+          btn.innerText = 'Sign Up';
+        }
+      } catch (err) { 
+        console.error('Fetch error:', err); 
+        showError('Server not responding. Please try again.'); 
+        btn.innerText = 'Sign Up'; 
+      }
+    });
+    
+    // Glitch Logo Animation
+    document.querySelectorAll('.glitch-logo').forEach(logo => {
+      const originalText = logo.getAttribute('data-text') || logo.innerText;
+      const chars = '!@#$%^&*█▓▒░│┤╡╢';
+      
+      function runGlitch() {
+        let iterations = 0;
+        const interval = setInterval(() => {
+          logo.innerText = originalText.split('').map((letter, index) => {
+            if (index < iterations) return originalText[index];
+            return chars[Math.floor(Math.random() * chars.length)];
+          }).join('');
+          
+          if (iterations >= originalText.length) clearInterval(interval);
+          iterations += 1 / 2;
+        }, 30);
+      }
+      
+      runGlitch();
+      logo.addEventListener('mouseover', runGlitch);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuralPath | Your Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #06050a;
+      --bg-light: #121021;
+      --card: rgba(255, 255, 255, 0.03);
+      --text: #ffffff;
+      --text-muted: #a0a0b0;
+      --accent: #7652ff;
+      --accent-hover: #5136db;
+      --border: rgba(255, 255, 255, 0.08);
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'IBM Plex Sans', sans-serif; background: radial-gradient(ellipse at top left, var(--bg-light), var(--bg-dark)); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+
+    #topbar { height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; background: rgba(18, 16, 33, 0.4); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100; justify-content: space-between; }
+    .logo { font-size: 1.5em; font-weight: 800; }
+    .nav-links { display: flex; gap: 15px; }
+    .nav-btn { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; font-size: 0.9em; font-weight: 500; cursor: pointer; transition: 0.2s; text-decoration: none; display: flex; align-items: center; font-family: inherit; }
+    .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); border: none; color: white; }
+    .nav-btn.primary:hover { box-shadow: 0 4px 15px rgba(118, 82, 255, 0.4); transform: translateY(-1px); color: white; }
+
+    .dashboard-container { max-width: 1100px; margin: 40px auto; padding: 0 20px; animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .header-section { margin-bottom: 40px; }
+    .header-section h1 { font-size: 2.5em; margin-bottom: 5px; }
+    .header-section p { color: var(--text-muted); font-size: 1.1em; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(118, 82, 255, 0.3); }
+    .stat-title { color: var(--text-muted); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600; }
+    .stat-value { font-size: 3em; font-weight: 800; font-family: 'Syne'; margin-bottom: 5px; }
+    .stat-value span { font-size: 0.5em; font-weight: 600; color: var(--text-muted); margin-left: 5px; }
+    .stat-trend { font-size: 0.85em; color: var(--green); }
+
+    /* History & Visuals Layout */
+    .layout-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 800px) { .layout-grid { grid-template-columns: 1fr; } }
+    
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 25px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .panel-title { font-size: 1.3em; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+
+    /* History List */
+    .history-list { display: flex; flex-direction: column; gap: 15px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
+    .history-list::-webkit-scrollbar { width: 6px; }
+    .history-list::-webkit-scrollbar-track { background: transparent; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    
+    .history-item { background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .history-item:hover { border-color: var(--accent); background: rgba(118, 82, 255, 0.05); }
+    .history-topic { font-weight: 600; font-size: 1.05em; margin-bottom: 5px; color: #fff; }
+    .history-meta { font-size: 0.85em; color: var(--text-muted); }
+    .history-score { font-family: 'Syne'; font-size: 1.4em; font-weight: bold; }
+    
+    .history-score.high { color: var(--green); }
+    .history-score.med { color: var(--yellow); }
+    .history-score.low { color: var(--red); }
+
+    /* Mini Progress Bar Chart */
+    .chart-bars { display: flex; align-items: flex-end; gap: 12px; height: 180px; margin-top: 30px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+    .bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .bar { width: 100%; max-width: 40px; background: linear-gradient(to top, rgba(118, 82, 255, 0.2), var(--accent)); border-radius: 6px 6px 0 0; min-height: 5px; transition: height 1s ease-out; }
+    .bar-label { font-size: 0.7em; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+
+    .loader-box { text-align: center; padding: 40px; color: var(--accent); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div id="topbar">
+    <div class="logo glitch-logo" data-text="NeuralPath" style="cursor: pointer;">NeuralPath</div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-btn primary">Start Learning</a>
+      <button class="nav-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="dashboard-container">
+    <div class="header-section">
+      <h1 id="user-greeting">Welcome back!</h1>
+      <p>Here is your intelligent learning breakdown.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Average Understanding</div>
+        <div class="stat-value" id="val-score">-<span>%</span></div>
+        <div class="stat-trend" id="val-trend">Building baseline...</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Topics Conquered</div>
+        <div class="stat-value" id="val-topics">-</div>
+        <div class="stat-trend">Unique Subjects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Total Sessions</div>
+        <div class="stat-value" id="val-sessions">-</div>
+        <div class="stat-trend">Review loops completed</div>
+      </div>
+    </div>
+
+    <!-- Details Layout -->
+    <div class="layout-grid">
+      <!-- History Panel -->
+      <div class="panel">
+        <h3 class="panel-title">Recent Learning History</h3>
+        <div class="history-list" id="history-container">
+          <div class="loader-box">Loading activity logs...</div>
+        </div>
+      </div>
+
+      <!-- Performance Panel -->
+      <div class="panel">
+        <h3 class="panel-title">Recent Performance</h3>
+        <p style="font-size: 0.9em; color: var(--text-muted);">Your last 5 understanding ratings.</p>
+        <div class="chart-bars" id="chart-container">
+          <!-- Bars generated via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    
+    // Auth Check
+    const token = localStorage.getItem('neuralpath_token');
+    if (!token) {
+      window.location.href = 'login.html';
+    }
+
+    const userData = JSON.parse(localStorage.getItem('neuralpath_user') || '{}');
+    if (userData.name) {
+      document.getElementById('user-greeting').innerText = `Welcome back, ${userData.name.split(' ')[0]}!`;
+    }
+
+    function logout() {
+      localStorage.removeItem('neuralpath_token');
+      localStorage.removeItem('neuralpath_user');
+      window.location.href = 'login.html';
+    }
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch(API_URL + '/dashboard', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.status === 401 || res.status === 403) {
+          logout(); return;
+        }
+
+        const data = await res.json();
+        renderDashboard(data);
+      } catch (err) {
+        console.error("Dashboard Load Error:", err);
+        document.getElementById('history-container').innerHTML = `<div class="loader-box" style="color:var(--red);">Failed to load connection data. Is the backend running?</div>`;
+      }
+    }
+
+    function renderDashboard(data) {
+      // Setup Stats
+      document.getElementById('val-score').innerHTML = `${data.averageScore || 0}<span>%</span>`;
+      document.getElementById('val-topics').innerText = data.topicsCompleted || 0;
+      document.getElementById('val-sessions').innerText = data.totalSessions || 0;
+
+      // History
+      const historyContainer = document.getElementById('history-container');
+      historyContainer.innerHTML = '';
+      
+      if (!data.history || data.history.length === 0) {
+        historyContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 30px;">No learning history yet. Jump back into a session!</div>`;
+      } else {
+        data.history.forEach(item => {
+          const dateStr = new Date(item.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          let scoreClass = 'high';
+          if (item.score < 80) scoreClass = 'med';
+          if (item.score < 50) scoreClass = 'low';
+          
+          historyContainer.innerHTML += `
+            <div class="history-item">
+              <div>
+                <div class="history-topic">${item.topic}</div>
+                <div class="history-meta">${dateStr}</div>
+              </div>
+              <div class="history-score ${scoreClass}">${item.score}%</div>
+            </div>
+          `;
+        });
+      }
+
+      // Chart
+      const chartContainer = document.getElementById('chart-container');
+      chartContainer.innerHTML = '';
+      if (data.recentScores && data.recentScores.length > 0) {
+        // Reverse to show oldest -> newest
+        const scores = [...data.recentScores].reverse();
+        scores.forEach((score, i) => {
+          const height = Math.max(score, 5); // Minimum height for visibility
+          chartContainer.innerHTML += `
+            <div class="bar-wrapper">
+              <div class="bar" style="height: ${height}%"></div>
+              <div class="bar-label">S${i+1}</div>
+            </div>
+          `;
+        });
+      } else {
+        chartContainer.innerHTML = `<div style="text-align:center;width:100%;color:var(--text-muted);font-size:0.9em;padding-bottom:20px;">Insufficient data</div>`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+    
+    // Glitch Logo Animation
+    document.querySelectorAll('.glitch-logo').forEach(logo => {
+      const originalText = logo.getAttribute('data-text') || logo.innerText;
+      const chars = '!@#$%^&*█▓▒░│┤╡╢';
+      
+      function runGlitch() {
+        let iterations = 0;
+        const interval = setInterval(() => {
+          logo.innerText = originalText.split('').map((letter, index) => {
+            if (index < iterations) return originalText[index];
+            return chars[Math.floor(Math.random() * chars.length)];
+          }).join('');
+          
+          if (iterations >= originalText.length) clearInterval(interval);
+          iterations += 1 / 2;
+        }, 30);
+      }
+      
+      runGlitch();
+      logo.addEventListener('mouseover', runGlitch);
+    });
+  </script>
+</body>
+</html>

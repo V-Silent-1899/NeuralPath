@@ -119,6 +119,10 @@
     .related-wrapper.open .related-chip { border-radius: 8px 8px 0 0; border-color: var(--border); background: var(--sidebar); }
     .related-wrapper.open .related-content { display: block; }
     
+    .premium-select { background: rgba(0,0,0,0.3); color: var(--text); border: 1px solid var(--border); padding: 8px 20px; border-radius: 20px; font-family: inherit; font-size: 0.9em; outline: none; cursor: pointer; backdrop-filter: blur(10px); transition: 0.2s; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 15px top 55%; background-size: 10px auto; padding-right: 35px; }
+    .premium-select:hover, .premium-select:focus { border-color: var(--accent); }
+    .premium-select option { background: var(--bg-dark); color: var(--text); }
+
     .premium-loader { color: var(--accent); font-weight: 600; display: flex; gap: 4px; align-items: center; padding: 15px 20px; background: var(--card); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid var(--border); width: fit-content; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9em; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     .premium-loader span { animation: premiumBlink 1.4s infinite both; font-size: 1.2em; line-height: 0; }
     .premium-loader span:nth-child(2) { animation-delay: 0.2s; }
@@ -161,14 +165,6 @@
   <div id="sidebar">
     <div class="logo">NeuralPath</div>
     
-    <select class="level-select" id="level-select">
-      <option value="class6">Class 6 (Simple)</option>
-      <option value="class8">Class 8 (School)</option>
-      <option value="class10">Class 10 (Detailed)</option>
-      <option value="college">College (Academic)</option>
-      <option value="curious" selected>Curious (Friendly default)</option>
-    </select>
-    
     <div class="tracker">
       <div class="tracker-step" id="tracker-step-1">
         <div class="dot"></div> Stage 1: AI Explains
@@ -194,7 +190,18 @@
 
   <div id="main">
     <div id="topbar">
-      <h3>NeuralPath Session</h3>
+      <h3 class="glitch-logo" data-text="NeuralPath" style="cursor: pointer;">NeuralPath</h3>
+      <div style="display:flex; gap: 15px; align-items:center;">
+        <div class="level-selector-wrapper">
+          <select id="level-select" class="premium-select">
+            <option value="school" selected>School Level</option>
+            <option value="college">College Level</option>
+            <option value="competitive">Competitive Exam Level</option>
+          </select>
+        </div>
+        <a href="dashboard.html" style="background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; border: none; padding: 10px 18px; border-radius: 20px; font-size: 0.9em; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; transition: 0.2s; box-shadow: 0 4px 15px rgba(118, 82, 255, 0.4);">Dashboard</a>
+        <button onclick="logout()" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; font-size: 0.9em; cursor: pointer; transition: 0.2s; font-family: inherit;">Logout</button>
+      </div>
     </div>
     
     <div id="chat-area">
@@ -241,7 +248,17 @@
   </div>
 
   <script>
-    const API_URL = 'http://localhost:3000/api';
+    // --- Route Protection ---
+    const neuralpathToken = localStorage.getItem('neuralpath_token');
+    if (!neuralpathToken) window.location.href = 'login.html';
+    
+    function logout() {
+      localStorage.removeItem('neuralpath_token');
+      localStorage.removeItem('neuralpath_user');
+      window.location.href = 'login.html';
+    }
+
+    const API_URL = 'http://localhost:3000';
     let currentTopicState = null; // { topic, stage (1, 2, 3) }
     
     let chatArea, mainInput, sendBtn, micStartBtn, micStopBtn, levelSelect, welcomeScreen;
@@ -281,8 +298,18 @@
       sendBtn = document.getElementById('send-btn');
       micStartBtn = document.getElementById('mic-start-btn');
       micStopBtn = document.getElementById('mic-stop-btn');
-      levelSelect = document.getElementById('level-select');
       welcomeScreen = document.getElementById('welcome-screen');
+      levelSelect = document.getElementById('level-select');
+      
+      if (levelSelect) {
+        const savedLevel = localStorage.getItem('userLevel');
+        if (savedLevel && levelSelect.querySelector(`option[value="${savedLevel}"]`)) {
+          levelSelect.value = savedLevel;
+        }
+        levelSelect.addEventListener('change', (e) => {
+          localStorage.setItem('userLevel', e.target.value);
+        });
+      }
       
       const voiceToggleCheckbox = document.getElementById('voice-toggle-checkbox');
       const voiceStatusText = document.getElementById('voice-status-text');
@@ -662,8 +689,23 @@
         
         // Save score to progress
         saveScore(localMetrics.understanding.score);
-        
         renderFeedback(data, localMetrics);
+        
+        try {
+          fetch(API_URL + '/activity/save', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + neuralpathToken
+            },
+            body: JSON.stringify({
+              topic: currentTopicState.topic,
+              explanation: userExplanation,
+              feedback: data.feedback,
+              score: localMetrics.understanding.score
+            })
+          });
+        } catch(e) { console.error("Telemetry error", e); }
         
         // Reset to Stage 1
         mainInput.disabled = false;
@@ -679,6 +721,28 @@
         sendBtn.innerText = "Get Feedback";
       }
     }
+    
+    // Glitch Logo Animation
+    document.querySelectorAll('.glitch-logo').forEach(logo => {
+      const originalText = logo.getAttribute('data-text') || logo.innerText;
+      const chars = '!@#$%^&*█▓▒░│┤╡╢';
+      
+      function runGlitch() {
+        let iterations = 0;
+        const interval = setInterval(() => {
+          logo.innerText = originalText.split('').map((letter, index) => {
+            if (index < iterations) return originalText[index];
+            return chars[Math.floor(Math.random() * chars.length)];
+          }).join('');
+          
+          if (iterations >= originalText.length) clearInterval(interval);
+          iterations += 1 / 2;
+        }, 30);
+      }
+      
+      runGlitch();
+      logo.addEventListener('mouseover', runGlitch);
+    });
     
     function renderFeedback(data, localMetrics) {
       // AI Voice Response
